@@ -87,3 +87,52 @@ print("✅ PASS")
 3. `docs/topic-history.md` のAcademic Talkセクションに使用したトピックを追記
 4. 語数検証をPythonで実行
 5. 検証サマリーを表示
+
+================================================================================
+## ElevenLabs Voice ID リファレンス
+
+### 音声生成手順
+1. スクリプト確定後、各セリフを ElevenLabs TTS API で個別生成
+2. レスポンスの MP3 を base64 エンコード
+3. `data:audio/mpeg;base64,...` として HTML に埋め込み
+
+### API 呼び出し
+```
+POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}
+Headers:
+  xi-api-key: $ELEVENLABS_API_KEY
+  Content-Type: application/json
+Body:
+  {
+    "text": "[スクリプト]",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.75,
+      "style": 0
+    }
+  }
+```
+
+### Voice ID 一覧
+| Name | Voice ID | Gender | Accent |
+|------|----------|--------|--------|
+| Rachel | 21m00Tcm4TlvDq8ikWAM | Female | American |
+| Alice | Xb7hH8MSUJpSbSDYk0k2 | Female | British |
+| Sarah | EXAVITQu4vr4xnSDxMaL | Female | American |
+| Charlotte | XB0fDUnXU5powFXDhCwa | Female | British |
+| Lily | pFZP5JQG7iQjIQuC4Bku | Female | British |
+| Nicole | piTKgcLEGmPE4e6mEKli | Female | Australian |
+| Matilda | XrExE9yKIg1WjnnlVkGX | Female | American |
+| George | JBFqnCBsd6RMkjVDRZzb | Male | British |
+| Daniel | onwK4e9ZLuTAKqWW03F9 | Male | British |
+| Chris | iP95p4xoKVk53GoZ742B | Male | American |
+| Callum | N2lVS1w4EtoT3dr4eOWO | Male | Australian |
+| Liam | TX3LPaxmHKxFdv7VOQHJ | Male | American |
+| Brian | nPczCjzI2devNBz1zQrb | Male | American |
+| Joseph | Zlb1dXrM653N07WRdFW3 | Male | British |
+
+### 重要ルール
+- スクリプトに指定された Voice Name の Voice ID を使うこと
+- 同じ画像には同じ声（同じ Voice ID）を使うこと
+- base64 埋め込み後、HTML 内の audioFiles / convAudio 等のプレースホルダーを置換すること

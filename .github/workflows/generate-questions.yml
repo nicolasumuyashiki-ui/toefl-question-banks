@@ -8,6 +8,7 @@ on:
 
 env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
   AGENT_ID: "agent_011CZuQsGq5SL3USuSrWLCLX"
   ENVIRONMENT_ID: "env_01Hk2AF3cTVrESWmwndCQ1iV"
 
@@ -85,7 +86,16 @@ jobs:
           echo "task=${TASKS[$TASK_INDEX]}" >> $GITHUB_OUTPUT
           echo "task_name=${TASK_NAMES[$TASK_INDEX]}" >> $GITHUB_OUTPUT
           echo "task_dir=${TASK_DIRS[$TASK_INDEX]}" >> $GITHUB_OUTPUT
-          echo "=== Day $DIFF | Task #$TASK_INDEX: ${TASK_NAMES[$TASK_INDEX]} ==="
+
+          # 音声タスク判定
+          AUDIO_TASKS="conv announce talk lcr lr ti"
+          if echo "$AUDIO_TASKS" | grep -wq "${TASKS[$TASK_INDEX]}"; then
+            echo "is_audio=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_audio=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "=== Day $DIFF | Task #$TASK_INDEX: ${TASK_NAMES[$TASK_INDEX]} (audio: $(echo "$AUDIO_TASKS" | grep -wq "${TASKS[$TASK_INDEX]}" && echo yes || echo no)) ==="
 
       - name: Run Managed Agent
         if: steps.check.outputs.skip != 'true'
@@ -93,25 +103,50 @@ jobs:
           TASK="${{ steps.check.outputs.task }}"
           TASK_NAME="${{ steps.check.outputs.task_name }}"
           TASK_DIR="${{ steps.check.outputs.task_dir }}"
+          IS_AUDIO="${{ steps.check.outputs.is_audio }}"
 
-          echo "Generating: $TASK_NAME"
+          echo "Generating: $TASK_NAME (audio: $IS_AUDIO)"
 
-          # セッションを作成
-          SESSION=$(curl -sS https://api.anthropic.com/v1/sessions \
-            -H "x-api-key: $ANTHROPIC_API_KEY" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "anthropic-beta: managed-agents-2026-04-01" \
-            -H "content-type: application/json" \
-            -d "{
-              \"agent\": \"$AGENT_ID\",
-              \"environment_id\": \"$ENVIRONMENT_ID\",
-              \"title\": \"Auto-generate $TASK_NAME\"
-            }")
+          # セッションを作成（音声タスクの場合は ElevenLabs キーも渡す）
+          if [ "$IS_AUDIO" = "true" ]; then
+            SESSION=$(curl -sS https://api.anthropic.com/v1/sessions \
+              -H "x-api-key: $ANTHROPIC_API_KEY" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "anthropic-beta: managed-agents-2026-04-01" \
+              -H "content-type: application/json" \
+              -d "{
+                \"agent\": \"$AGENT_ID\",
+                \"environment_id\": \"$ENVIRONMENT_ID\",
+                \"title\": \"Auto-generate $TASK_NAME (with audio)\",
+                \"environment_variables\": {
+                  \"ELEVENLABS_API_KEY\": \"$ELEVENLABS_API_KEY\"
+                }
+              }")
+          else
+            SESSION=$(curl -sS https://api.anthropic.com/v1/sessions \
+              -H "x-api-key: $ANTHROPIC_API_KEY" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "anthropic-beta: managed-agents-2026-04-01" \
+              -H "content-type: application/json" \
+              -d "{
+                \"agent\": \"$AGENT_ID\",
+                \"environment_id\": \"$ENVIRONMENT_ID\",
+                \"title\": \"Auto-generate $TASK_NAME\"
+              }")
+          fi
 
           SESSION_ID=$(echo "$SESSION" | jq -r '.id')
           echo "Session: $SESSION_ID"
 
-          # ユーザーメッセージを送信
+          # --- Phase 1: 問題生成メッセージを送信 ---
+          if [ "$IS_AUDIO" = "true" ]; then
+            # 音声タスク: 問題生成 + ElevenLabs 音声生成 + base64 埋め込み
+            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む（末尾の ElevenLabs Voice ID リファレンスも含めて）\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書に従って問題ファイルとスクリプトを生成\n5. 音声生成: スクリプト完成後、環境変数 ELEVENLABS_API_KEY を使って ElevenLabs TTS API で各音声を生成し、base64エンコードしてHTMLに埋め込んでください。Voice IDはspec末尾のテーブルを参照。\n6. docs/topic-history.md にトピック追記\n7. 検証チェックリストを実行"
+          else
+            # テキストタスク: 問題生成のみ
+            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書に従って問題ファイルを生成\n5. docs/topic-history.md にトピック追記\n6. 検証チェックリストを実行"
+          fi
+
           curl -sS \
             "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -123,14 +158,20 @@ jobs:
                 \"type\": \"user.message\",
                 \"content\": [{
                   \"type\": \"text\",
-                  \"text\": \"specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\\n\\n出力先: ${TASK_DIR}/\\n\\n手順:\\n1. specs/${TASK}-spec.md を読む\\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\\n3. docs/topic-history.md で重複チェック\\n4. 仕様書に従って問題ファイルを生成\\n5. docs/topic-history.md にトピック追記\\n6. 検証チェックリストを実行\"
+                  \"text\": \"$PROMPT\"
                 }]
               }]
             }" > /dev/null
 
-          # --- Phase 1: 生成の完了を待つ（最大15分） ---
-          echo "Phase 1: Waiting for generation to complete..."
-          for i in $(seq 1 90); do
+          # --- Phase 1: 生成の完了を待つ ---
+          if [ "$IS_AUDIO" = "true" ]; then
+            MAX_POLLS=180  # 音声タスク: 最大30分
+          else
+            MAX_POLLS=90   # テキストタスク: 最大15分
+          fi
+
+          echo "Phase 1: Waiting for generation to complete (max ${MAX_POLLS}0s)..."
+          for i in $(seq 1 $MAX_POLLS); do
             sleep 10
             STATUS=$(curl -sS \
               "https://api.anthropic.com/v1/sessions/$SESSION_ID" \
@@ -139,7 +180,7 @@ jobs:
               -H "anthropic-beta: managed-agents-2026-04-01" \
               | jq -r '.status')
 
-            echo "  [$i] Status: $STATUS"
+            echo "  [$i/$MAX_POLLS] Status: $STATUS"
 
             if [ "$STATUS" = "idle" ] || [ "$STATUS" = "completed" ]; then
               echo "Phase 1 complete!"
@@ -165,7 +206,7 @@ jobs:
                 \"type\": \"user.message\",
                 \"content\": [{
                   \"type\": \"text\",
-                  \"text\": \"生成したファイルを specs/${TASK}-spec.md 内の検証チェックリストで検証してください。NGがあれば修正してください。最終的な検証サマリーを出力してください。\"
+                  \"text\": \"生成したファイルを specs/${TASK}-spec.md 内の検証チェックリストで全項目検証してください。NGがあれば修正してください。最終的な検証サマリーを出力してください。\"
                 }]
               }]
             }" > /dev/null
@@ -181,7 +222,7 @@ jobs:
               -H "anthropic-beta: managed-agents-2026-04-01" \
               | jq -r '.status')
 
-            echo "  [$i] Status: $STATUS"
+            echo "  [$i/60] Status: $STATUS"
 
             if [ "$STATUS" = "idle" ] || [ "$STATUS" = "completed" ]; then
               echo "Verification complete!"
