@@ -1,0 +1,171 @@
+name: Generate TOEFL Questions
+
+on:
+  schedule:
+    # 毎日 UTC 0時（JST 9時）に実行、スクリプト側で3日判定
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 手動実行も可能
+
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  AGENT_ID: "PLACEHOLDER_AGENT_ID"        # ← Step 3 で取得した id に置き換え
+  ENVIRONMENT_ID: "PLACEHOLDER_ENV_ID"     # ← Step 4 で取得した id に置き換え
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if today is a generation day
+        id: check
+        run: |
+          # 基準日（2026-04-11）からの経過日数を計算
+          BASE_DATE="2026-04-11"
+          TODAY=$(date -u +%Y-%m-%d)
+          DIFF=$(( ($(date -d "$TODAY" +%s) - $(date -d "$BASE_DATE" +%s)) / 86400 ))
+
+          # 3で割り切れる日だけ実行
+          if [ $((DIFF % 3)) -ne 0 ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Today is not a generation day (day $DIFF). Skipping."
+            exit 0
+          fi
+
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+          # 12タスクのローテーション（0-indexed）
+          TASK_INDEX=$(( (DIFF / 3) % 12 ))
+
+          TASKS=(
+            "ctw"
+            "rdl"
+            "academic"
+            "conv"
+            "announce"
+            "talk"
+            "lcr"
+            "lr"
+            "ti"
+            "sentence"
+            "email"
+            "discussion"
+          )
+
+          TASK_NAMES=(
+            "Complete the Words (CTW)"
+            "Read in Daily Life (RDL)"
+            "Read an Academic Passage"
+            "Listen to a Conversation"
+            "Listen to an Announcement"
+            "Listen to an Academic Talk"
+            "Listen and Choose a Response (LCR)"
+            "Listen and Repeat (LR)"
+            "Take an Interview (TI)"
+            "Build a Sentence"
+            "Write an Email"
+            "Academic Discussion"
+          )
+
+          TASK_DIRS=(
+            "reading/ctw"
+            "reading/rdl"
+            "reading/academic"
+            "listening/conv"
+            "listening/announce"
+            "listening/talk"
+            "listening/lcr"
+            "speaking/lr"
+            "speaking/ti"
+            "writing/sentence"
+            "writing/email"
+            "writing/discussion"
+          )
+
+          echo "task=${TASKS[$TASK_INDEX]}" >> $GITHUB_OUTPUT
+          echo "task_name=${TASK_NAMES[$TASK_INDEX]}" >> $GITHUB_OUTPUT
+          echo "task_dir=${TASK_DIRS[$TASK_INDEX]}" >> $GITHUB_OUTPUT
+          echo "=== Day $DIFF | Task #$TASK_INDEX: ${TASK_NAMES[$TASK_INDEX]} ==="
+
+      - name: Run Managed Agent
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          TASK="${{ steps.check.outputs.task }}"
+          TASK_NAME="${{ steps.check.outputs.task_name }}"
+          TASK_DIR="${{ steps.check.outputs.task_dir }}"
+
+          echo "Generating: $TASK_NAME"
+
+          # セッションを作成
+          SESSION=$(curl -sS https://api.anthropic.com/v1/sessions \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "anthropic-beta: managed-agents-2026-04-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"agent\": \"$AGENT_ID\",
+              \"environment_id\": \"$ENVIRONMENT_ID\",
+              \"title\": \"Auto-generate $TASK_NAME\"
+            }")
+
+          SESSION_ID=$(echo "$SESSION" | jq -r '.id')
+          echo "Session: $SESSION_ID"
+
+          # ユーザーメッセージを送信
+          curl -sS \
+            "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "anthropic-beta: managed-agents-2026-04-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"events\": [{
+                \"type\": \"user.message\",
+                \"content\": [{
+                  \"type\": \"text\",
+                  \"text\": \"specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\\n\\n出力先: ${TASK_DIR}/\\n\\n手順:\\n1. specs/${TASK}-spec.md を読む\\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\\n3. docs/topic-history.md で重複チェック\\n4. 仕様書に従って問題ファイルを生成\\n5. docs/topic-history.md にトピック追記\\n6. 検証チェックリストを実行\"
+                }]
+              }]
+            }" > /dev/null
+
+          # エージェントの完了を待つ（最大15分）
+          echo "Waiting for agent to complete..."
+          for i in $(seq 1 90); do
+            sleep 10
+            STATUS=$(curl -sS \
+              "https://api.anthropic.com/v1/sessions/$SESSION_ID" \
+              -H "x-api-key: $ANTHROPIC_API_KEY" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "anthropic-beta: managed-agents-2026-04-01" \
+              | jq -r '.status')
+
+            echo "  [$i] Status: $STATUS"
+
+            if [ "$STATUS" = "idle" ] || [ "$STATUS" = "completed" ]; then
+              echo "Agent finished!"
+              break
+            fi
+
+            if [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+              echo "Agent failed!"
+              exit 1
+            fi
+          done
+
+      - name: Commit and push
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "TCK Question Generator"
+          git config user.email "generator@tckworkshop.co.jp"
+          git add .
+
+          TASK_NAME="${{ steps.check.outputs.task_name }}"
+
+          # 変更がある場合のみコミット
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "feat: auto-generate $TASK_NAME practice"
+            git push
+            echo "✅ Committed and pushed!"
+          fi

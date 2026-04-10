@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversation Practice 1 — 解答解説</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f5f7fa;color:#2d3748;line-height:1.8}
+.header{background:linear-gradient(135deg,#2d3748,#4a5568);color:#fff;padding:28px 24px;text-align:center}
+.header h1{font-size:1.5em;margin-bottom:4px}
+.header p{font-size:.85em;opacity:.8}
+
+.score-summary{max-width:880px;margin:24px auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:24px;text-align:center}
+.score-big{font-size:2.8em;font-weight:700;color:#4a90d9;margin:8px 0}
+.score-sub{font-size:.85em;color:#718096}
+.score-bar{height:8px;background:#e2e8f0;border-radius:4px;margin:16px auto;max-width:300px}
+.score-bar-fill{height:100%;background:#4a90d9;border-radius:4px;transition:width .5s}
+
+.tips-banner{background:#fff;border-left:4px solid #4a90d9;margin:20px auto;max-width:880px;padding:20px 24px;border-radius:0 8px 8px 0;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.tips-banner h2{font-size:1em;color:#4a90d9;margin-bottom:14px}
+.tips-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.tips-grid{grid-template-columns:1fr}}
+.tip-card{background:#ebf4ff;border-radius:8px;padding:14px;text-align:center}
+.tip-icon{font-size:1.5em;margin-bottom:6px}
+.tip-card h3{font-size:.85em;margin-bottom:4px}
+.tip-card p{font-size:.75em;color:#4a5568}
+
+.conv-section{max-width:880px;margin:20px auto}
+.conv-header{background:#fff;border-radius:10px 10px 0 0;padding:16px 20px;border-bottom:2px solid #4a90d9;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.conv-header h3{font-size:1em;color:#4a90d9}
+.conv-header p{font-size:.82em;color:#718096;margin-top:4px}
+.script-box{background:#fff;padding:16px 20px;margin-bottom:2px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.script-box details{cursor:pointer}
+.script-box summary{font-size:.88em;font-weight:600;color:#4a90d9;padding:8px 0}
+.script-line{font-size:.82em;color:#4a5568;margin:4px 0;padding-left:12px}
+.script-line strong{color:#2d3748}
+
+.q-card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden}
+.q-header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #edf2f7}
+.q-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85em;color:#fff;flex-shrink:0}
+.q-num.correct{background:#38a169}
+.q-num.wrong{background:#e53e3e}
+.q-num.skip{background:#a0aec0}
+.q-prompt{font-size:.92em;font-weight:600;flex:1}
+.q-badge{font-size:.72em;padding:3px 10px;border-radius:12px;font-weight:600}
+.q-badge.detail{background:#ebf8ff;color:#2b6cb0}
+.q-badge.inference{background:#fefcbf;color:#975a16}
+.q-body{padding:16px 20px}
+.q-user{font-size:.85em;margin-bottom:10px;padding:8px 12px;border-radius:6px}
+.q-user.is-correct{background:#f0fff4;color:#22543d}
+.q-user.is-wrong{background:#fff5f5;color:#9b2c2c}
+.q-user.is-skip{background:#f7fafc;color:#718096}
+.options-list{margin:10px 0}
+.opt-row{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:6px;font-size:.85em;margin-bottom:4px}
+.opt-row.is-correct{background:#f0fff4;font-weight:600}
+.opt-row.is-wrong-selected{background:#fff5f5;text-decoration:line-through;color:#e53e3e}
+.opt-label{font-weight:700;min-width:24px}
+.q-explain{background:#f7fafc;border-left:3px solid #4a90d9;padding:12px 16px;border-radius:0 6px 6px 0;margin-top:10px;font-size:.82em}
+.q-explain strong{color:#2b6cb0}
+.q-hint{margin-top:6px;font-size:.8em;color:#718096;font-style:italic}
+
+.nav-bottom{max-width:880px;margin:24px auto;text-align:center;padding-bottom:40px}
+.btn-back{display:inline-block;padding:12px 32px;background:#4a90d9;color:#fff;border:none;border-radius:8px;font-size:.95em;font-weight:600;cursor:pointer;text-decoration:none;margin:0 8px}
+.btn-back:hover{background:#3a7cc0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Listen to a Conversation — Practice 1 解答解説</h1>
+  <p>Task Training | Conversation</p>
+</div>
+
+<div class="score-summary">
+  <p class="score-sub">あなたのスコア</p>
+  <div class="score-big" id="scoreBig">— / 4</div>
+  <div class="score-bar"><div class="score-bar-fill" id="scoreBar" style="width:0%"></div></div>
+  <p class="score-sub" id="scoreMsg"></p>
+</div>
+
+<div class="tips-banner">
+  <h2>Conversation 攻略のコツ</h2>
+  <div class="tips-grid">
+    <div class="tip-card">
+      <div class="tip-icon">📝</div>
+      <h3>メモの取り方</h3>
+      <p>問題は何か？解決策は何か？をキーワードだけメモ。全文書き取ろうとしない！</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🔄</div>
+      <h3>問題解決パターン</h3>
+      <p>挨拶→問題提示→解決策提案→結論。キャンパス会話の多くはこのパターンに従う</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">😮</div>
+      <h3>感情表現に注目</h3>
+      <p>That would be great! / That's a problem. → 話者の感情は頻出の設問ポイント</p>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation 1 -->
+<div class="conv-section">
+  <div class="conv-header">
+    <h3>Conversation 1 — IT Help Desk</h3>
+    <p>場面：IT Help Desk ｜ 学生（女性）+ ITスタッフ（男性）</p>
+  </div>
+  <div class="script-box">
+    <details>
+      <summary>📜 スクリプトを見る（クリックで展開）</summary>
+      <div class="script-line"><strong>[Student]</strong> Hi, I'm having trouble connecting to the campus Wi-Fi on my laptop. It was working fine yesterday.</div>
+      <div class="script-line"><strong>[Staff]</strong> I see. Have you tried restarting your laptop? Sometimes that clears up connection issues.</div>
+      <div class="script-line"><strong>[Student]</strong> Yeah, I did that already, but it still won't connect. It keeps saying "authentication failed."</div>
+      <div class="script-line"><strong>[Staff]</strong> That usually means your network password has expired. We reset all student passwords at the beginning of each month for security purposes.</div>
+      <div class="script-line"><strong>[Student]</strong> Oh, I didn't know that. How do I set a new one?</div>
+      <div class="script-line"><strong>[Staff]</strong> You can reset it through the student portal, or I can do it for you right here. You'll just need your student ID.</div>
+      <div class="script-line"><strong>[Student]</strong> That would be great. Here's my ID. I have a class in twenty minutes, so I really need this fixed quickly.</div>
+      <div class="script-line"><strong>[Staff]</strong> No problem. It'll only take a minute. I'll also send you an email reminder before next month's reset so you won't have this issue again.</div>
+      <div class="script-line"><strong>[Student]</strong> That's really helpful, thank you so much!</div>
+    </details>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num correct" id="q1icon">1</div>
+      <div class="q-prompt">Why does the student visit the IT help desk?</div>
+      <span class="q-badge detail">Detail</span>
+    </div>
+    <div class="q-body">
+      <div class="q-user is-correct" id="q1user"></div>
+      <div class="options-list">
+        <div class="opt-row"><span class="opt-label">(A)</span> To report a stolen laptop on campus.</div>
+        <div class="opt-row"><span class="opt-label">(B)</span> To install new software on her computer.</div>
+        <div class="opt-row"><span class="opt-label">(C)</span> To request a new student ID card.</div>
+        <div class="opt-row is-correct"><span class="opt-label">(D)</span> To get help connecting to the campus Wi-Fi.</div>
+      </div>
+      <div class="q-explain"><strong>解説：</strong> 学生の最初の発言で「having trouble connecting to the campus Wi-Fi」と明確に述べている。会話の冒頭で目的が示される典型的なパターン。</div>
+      <div class="q-hint">🔑 目的問題（Why does the student...）は冒頭に答えがある。最初の発話に全集中！</div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num correct" id="q2icon">2</div>
+      <div class="q-prompt">What will the staff member do for the student?</div>
+      <span class="q-badge detail">Detail</span>
+    </div>
+    <div class="q-body">
+      <div class="q-user is-correct" id="q2user"></div>
+      <div class="options-list">
+        <div class="opt-row is-correct"><span class="opt-label">(A)</span> Reset her network password and send a monthly reminder.</div>
+        <div class="opt-row"><span class="opt-label">(B)</span> Replace her laptop battery right away.</div>
+        <div class="opt-row"><span class="opt-label">(C)</span> Give her a temporary Wi-Fi hotspot device.</div>
+        <div class="opt-row"><span class="opt-label">(D)</span> Schedule a follow-up appointment for tomorrow.</div>
+      </div>
+      <div class="q-explain"><strong>解説：</strong> スタッフは「I can do it for you right here」（パスワードリセット）と「I'll also send you an email reminder」（月次リマインダー）の2つを提案。両方含む(A)が正解。</div>
+      <div class="q-hint">🔑 解決策問題は会話の後半に答えがある。2つのアクションが含まれる選択肢に注目。</div>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation 2 -->
+<div class="conv-section">
+  <div class="conv-header">
+    <h3>Conversation 2 — Campus Bookstore</h3>
+    <p>場面：Campus Bookstore ｜ 学生（男性）+ 書店スタッフ（女性）</p>
+  </div>
+  <div class="script-box">
+    <details>
+      <summary>📜 スクリプトを見る（クリックで展開）</summary>
+      <div class="script-line"><strong>[Student]</strong> Excuse me, I ordered a textbook online for pickup, but I received the wrong edition.</div>
+      <div class="script-line"><strong>[Staff]</strong> Oh, I'm sorry about that. Do you have your order confirmation?</div>
+      <div class="script-line"><strong>[Student]</strong> Yes, here it is. I ordered the third edition of Introduction to Psychology, but I got the second edition instead.</div>
+      <div class="script-line"><strong>[Staff]</strong> Let me check our inventory. Unfortunately, we're currently out of stock on the third edition.</div>
+      <div class="script-line"><strong>[Student]</strong> That's a problem. My professor specifically said we need the third edition because some chapters were reorganized.</div>
+      <div class="script-line"><strong>[Staff]</strong> I understand. We have a new shipment arriving on Wednesday. I can reserve a copy for you and give you a ten percent discount for the inconvenience.</div>
+      <div class="script-line"><strong>[Student]</strong> Wednesday works. Can I keep the second edition until then, just so I can start reading the parts that didn't change?</div>
+      <div class="script-line"><strong>[Staff]</strong> Of course. Just bring it back when you pick up the new one, and we'll process the exchange then.</div>
+    </details>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num correct" id="q3icon">3</div>
+      <div class="q-prompt">What can be inferred about why the student needs the third edition?</div>
+      <span class="q-badge inference">Inference</span>
+    </div>
+    <div class="q-body">
+      <div class="q-user is-correct" id="q3user"></div>
+      <div class="options-list">
+        <div class="opt-row"><span class="opt-label">(A)</span> The second edition contains too many errors.</div>
+        <div class="opt-row is-correct"><span class="opt-label">(B)</span> His professor requires it because the chapters were reorganized.</div>
+        <div class="opt-row"><span class="opt-label">(C)</span> The third edition is cheaper than the second.</div>
+        <div class="opt-row"><span class="opt-label">(D)</span> The bookstore no longer carries the second edition.</div>
+      </div>
+      <div class="q-explain"><strong>解説：</strong> 学生は「My professor specifically said we need the third edition because some chapters were reorganized」と述べている。直接的には教授の指示だが、推測すると章の再編成が理由。</div>
+      <div class="q-hint">🔑 推論問題：話者の発言から「なぜ」を推測する。「because」の後に理由がある。</div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-header">
+      <div class="q-num correct" id="q4icon">4</div>
+      <div class="q-prompt">What will the student most likely do next?</div>
+      <span class="q-badge inference">Inference</span>
+    </div>
+    <div class="q-body">
+      <div class="q-user is-correct" id="q4user"></div>
+      <div class="options-list">
+        <div class="opt-row"><span class="opt-label">(A)</span> Return the book and wait for a full refund.</div>
+        <div class="opt-row"><span class="opt-label">(B)</span> Buy the second edition for the whole semester.</div>
+        <div class="opt-row is-correct"><span class="opt-label">(C)</span> Read the second edition until Wednesday and then exchange it.</div>
+        <div class="opt-row"><span class="opt-label">(D)</span> Order the book from a different online bookstore.</div>
+      </div>
+      <div class="q-explain"><strong>解説：</strong> 学生は「Can I keep the second edition until then, just so I can start reading」と述べ、スタッフは「Just bring it back when you pick up the new one」と了承。水曜日まで第2版を読み、交換する流れが推測できる。</div>
+      <div class="q-hint">🔑 推論問題：「What will...most likely do next?」は会話の結論から次のアクションを推測する。</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-bottom">
+  <a class="btn-back" href="practice-1.html">← もう一度解く</a>
+  <a class="btn-back" href="../menu.html" style="background:#2d3748;color:#fff;border-color:#2d3748">メニューに戻る</a>
+</div>
+
+<script>
+const labels = ['A','B','C','D'];
+const correctAnswers = [3, 0, 1, 2]; // Q1=D, Q2=A, Q3=B, Q4=C
+
+function render(){
+  const stored = JSON.parse(sessionStorage.getItem('convAnswers')||'null');
+  let correct = 0, answered = 0;
+
+  if(stored && Array.isArray(stored)){
+    for(let i=0;i<4;i++){
+      const userAns = stored[i];
+      const isCorrect = userAns === correctAnswers[i];
+      const isSkip = userAns === null || userAns === undefined;
+      if(!isSkip) answered++;
+      if(isCorrect) correct++;
+
+      const icon = document.getElementById('q'+(i+1)+'icon');
+      const user = document.getElementById('q'+(i+1)+'user');
+
+      if(isSkip){
+        icon.className = 'q-num skip';
+        user.className = 'q-user is-skip';
+        user.textContent = '⏱️ 未回答（タイムアウト）';
+      } else if(isCorrect){
+        icon.className = 'q-num correct';
+        user.className = 'q-user is-correct';
+        user.textContent = '✅ 正解！ あなたの回答: ('+labels[userAns]+')';
+      } else {
+        icon.className = 'q-num wrong';
+        user.className = 'q-user is-wrong';
+        user.textContent = '❌ あなたの回答: ('+labels[userAns]+') → 正解: ('+labels[correctAnswers[i]]+')';
+      }
+    }
+    document.getElementById('scoreBig').textContent = correct + ' / 4';
+    document.getElementById('scoreBar').style.width = (correct/4*100)+'%';
+    const pct = Math.round(correct/4*100);
+    let msg = pct >= 75 ? '素晴らしい！🎉' : pct >= 50 ? 'いい調子！' : '復習して次に活かそう💪';
+    document.getElementById('scoreMsg').textContent = pct + '% 正答率 — ' + msg;
+  } else {
+    document.getElementById('scoreBig').textContent = '— / 4';
+    document.getElementById('scoreMsg').textContent = '問題を先に解いてからこのページを見ると、スコアが表示されます';
+    for(let i=1;i<=4;i++){
+      document.getElementById('q'+i+'user').style.display='none';
+    }
+  }
+}
+render();
+</script>
+<script src="../../js/auth.js"></script>
+<script>if(typeof Auth!=='undefined'){Auth.require();}</script>
+</body>
+</html>
