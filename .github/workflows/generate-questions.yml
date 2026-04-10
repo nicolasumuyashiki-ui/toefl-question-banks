@@ -8,8 +8,8 @@ on:
 
 env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  AGENT_ID: "PLACEHOLDER_AGENT_ID"        # ← Step 3 で取得した id に置き換え
-  ENVIRONMENT_ID: "PLACEHOLDER_ENV_ID"     # ← Step 4 で取得した id に置き換え
+  AGENT_ID: "agent_011CZuQsGq5SL3USuSrWLCLX"
+  ENVIRONMENT_ID: "env_01Hk2AF3cTVrESWmwndCQ1iV"
 
 jobs:
   generate:
