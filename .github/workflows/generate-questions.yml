@@ -128,8 +128,8 @@ jobs:
               }]
             }" > /dev/null
 
-          # エージェントの完了を待つ（最大15分）
-          echo "Waiting for agent to complete..."
+          # --- Phase 1: 生成の完了を待つ（最大15分） ---
+          echo "Phase 1: Waiting for generation to complete..."
           for i in $(seq 1 90); do
             sleep 10
             STATUS=$(curl -sS \
@@ -142,12 +142,54 @@ jobs:
             echo "  [$i] Status: $STATUS"
 
             if [ "$STATUS" = "idle" ] || [ "$STATUS" = "completed" ]; then
-              echo "Agent finished!"
+              echo "Phase 1 complete!"
               break
             fi
 
             if [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
-              echo "Agent failed!"
+              echo "Agent failed during generation!"
+              exit 1
+            fi
+          done
+
+          # --- Phase 2: 検証メッセージを送信 ---
+          echo "Phase 2: Sending verification message..."
+          curl -sS \
+            "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "anthropic-beta: managed-agents-2026-04-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"events\": [{
+                \"type\": \"user.message\",
+                \"content\": [{
+                  \"type\": \"text\",
+                  \"text\": \"生成したファイルを specs/${TASK}-spec.md 内の検証チェックリストで検証してください。NGがあれば修正してください。最終的な検証サマリーを出力してください。\"
+                }]
+              }]
+            }" > /dev/null
+
+          # --- Phase 2: 検証の完了を待つ（最大10分） ---
+          echo "Phase 2: Waiting for verification to complete..."
+          for i in $(seq 1 60); do
+            sleep 10
+            STATUS=$(curl -sS \
+              "https://api.anthropic.com/v1/sessions/$SESSION_ID" \
+              -H "x-api-key: $ANTHROPIC_API_KEY" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "anthropic-beta: managed-agents-2026-04-01" \
+              | jq -r '.status')
+
+            echo "  [$i] Status: $STATUS"
+
+            if [ "$STATUS" = "idle" ] || [ "$STATUS" = "completed" ]; then
+              echo "Verification complete!"
+              break
+            fi
+
+            if [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+              echo "Agent failed during verification!"
               exit 1
             fi
           done
