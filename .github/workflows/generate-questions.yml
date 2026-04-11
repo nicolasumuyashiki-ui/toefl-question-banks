@@ -139,12 +139,19 @@ jobs:
           echo "Session: $SESSION_ID"
 
           # --- Phase 1: 問題生成メッセージを送信 ---
+          # タスク固有の注意事項
+          TASK_NOTES=""
+          if [ "$TASK" = "ctw" ]; then
+            TASK_NOTES="\\n\\n【重要】CTWは必ず4ファイルを生成すること:\\n- practice-{N}-set-1.html（Set 1）\\n- practice-{N}-set-2.html（Set 2）\\n- practice-{N}-set-3.html（Set 3 — Harder Module）\\n- practice-{N}-answers.html（3セット分の解答解説）\\n1ファイルだけでは不完全です。3セット＋解答ページの計4ファイルが必須です。"
+          fi
+
+          # 過去問との類似防止チェック指示
+          SIMILARITY_CHECK="\\n\\n【過去問との類似防止】\\n- docs/topic-history.md のトピック一覧と重複しないこと\\n- ${TASK_DIR}/ 内の既存HTMLファイルを読み、パッセージや問題文が酷似していないか確認すること\\n- 類似トピック（例: 図書館の本の返却 vs 図書館の延滞金）も避けること"
+
           if [ "$IS_AUDIO" = "true" ]; then
-            # 音声タスク: 問題生成 + ElevenLabs 音声生成 + base64 埋め込み
-            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む（末尾の ElevenLabs Voice ID リファレンスも含めて）\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書に従って問題ファイルとスクリプトを生成\n5. 音声生成: スクリプト完成後、環境変数 ELEVENLABS_API_KEY を使って ElevenLabs TTS API で各音声を生成し、base64エンコードしてHTMLに埋め込んでください。Voice IDはspec末尾のテーブルを参照。\n6. docs/topic-history.md にトピック追記\n7. 検証チェックリストを実行"
+            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む（末尾の ElevenLabs Voice ID リファレンスも含めて）\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書の「出力ファイル」セクションに記載された全ファイルを漏れなく生成\n5. 音声生成: スクリプト完成後、環境変数 ELEVENLABS_API_KEY を使って ElevenLabs TTS API で各音声を生成し、base64エンコードしてHTMLに埋め込んでください。Voice IDはspec末尾のテーブルを参照。\n6. docs/topic-history.md にトピック追記\n7. 検証チェックリストを実行${TASK_NOTES}${SIMILARITY_CHECK}"
           else
-            # テキストタスク: 問題生成のみ
-            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書に従って問題ファイルを生成\n5. docs/topic-history.md にトピック追記\n6. 検証チェックリストを実行"
+            PROMPT="specs/${TASK}-spec.md を読んで、${TASK_NAME} の新しいPractice を1セット分生成してください。\n\n出力先: ${TASK_DIR}/\n\n手順:\n1. specs/${TASK}-spec.md を読む\n2. ${TASK_DIR}/ の既存ファイルを確認し次のPractice番号を特定\n3. docs/topic-history.md で重複チェック\n4. 仕様書の「出力ファイル」セクションに記載された全ファイルを漏れなく生成\n5. docs/topic-history.md にトピック追記\n6. 検証チェックリストを実行${TASK_NOTES}${SIMILARITY_CHECK}"
           fi
 
           curl -sS \
@@ -206,7 +213,7 @@ jobs:
                 \"type\": \"user.message\",
                 \"content\": [{
                   \"type\": \"text\",
-                  \"text\": \"生成したファイルを specs/${TASK}-spec.md 内の検証チェックリストで全項目検証してください。NGがあれば修正してください。最終的な検証サマリーを出力してください。\"
+                  \"text\": \"以下の3段階で検証してください。\\n\\n1. ファイル数チェック: specs/${TASK}-spec.md の「出力ファイル」セクションに記載された全ファイルが生成されているか確認。不足があれば生成。\\n\\n2. 品質チェック: specs/${TASK}-spec.md 内の検証チェックリストで全項目検証。NGがあれば修正。\\n\\n3. 類似度チェック: ${TASK_DIR}/ 内の既存ファイルとトピック・パッセージ・問題文が酷似していないか確認。酷似している場合はトピックを差し替えて再生成。\\n\\n最終的な検証サマリーを出力してください。\"
                 }]
               }]
             }" > /dev/null
