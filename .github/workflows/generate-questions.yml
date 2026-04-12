@@ -9,6 +9,7 @@ on:
 env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+  IDEOGRAM_API_KEY: ${{ secrets.IDEOGRAM_API_KEY }}
   AGENT_ID: "agent_011CZuQsGq5SL3USuSrWLCLX"
   ENVIRONMENT_ID: "env_01Hk2AF3cTVrESWmwndCQ1iV"
 
@@ -107,7 +108,7 @@ jobs:
 
           echo "Generating: $TASK_NAME (audio: $IS_AUDIO)"
 
-          # セッションを作成（音声タスクの場合は ElevenLabs キーも渡す）
+          # セッションを作成（音声タスクの場合は ElevenLabs + Ideogram キーも渡す）
           if [ "$IS_AUDIO" = "true" ]; then
             SESSION=$(curl -sS https://api.anthropic.com/v1/sessions \
               -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -119,7 +120,8 @@ jobs:
                 \"environment_id\": \"$ENVIRONMENT_ID\",
                 \"title\": \"Auto-generate $TASK_NAME (with audio)\",
                 \"environment_variables\": {
-                  \"ELEVENLABS_API_KEY\": \"$ELEVENLABS_API_KEY\"
+                  \"ELEVENLABS_API_KEY\": \"$ELEVENLABS_API_KEY\",
+                  \"IDEOGRAM_API_KEY\": \"$IDEOGRAM_API_KEY\"
                 }
               }")
           else
